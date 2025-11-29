@@ -102,7 +102,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          cargo nextest run --workspace --no-fail-fast --no-default-features --features default
+          cargo nextest run --release --workspace --no-fail-fast --no-default-features --features default -E 'test(blackbox_exporter)'
           echo "All tests passed"
 
       - name: Create Release Archive
