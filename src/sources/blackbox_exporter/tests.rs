@@ -94,6 +94,327 @@ fn test_construct_probe_url_with_path_and_query() {
     assert!(result_str.contains("module="));
 }
 
+// Edge case tests for URL construction
+
+#[test]
+fn test_construct_probe_url_with_special_characters_in_target() {
+    let base_url = "http://blackbox.example.com".parse::<Uri>().unwrap();
+    // Target with special characters: spaces, ampersands, question marks, equals signs
+    let target = "https://app.example.com/path?query=value&other=test param";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify URL is constructed successfully
+    assert!(result_str.contains("/probe"));
+    assert!(result_str.contains("target="));
+    assert!(result_str.contains("module="));
+
+    // Verify special characters are encoded (should contain % for percent encoding)
+    let query = result.query().unwrap();
+    let target_param = query
+        .split('&')
+        .find(|p| p.starts_with("target="))
+        .unwrap();
+    
+    // Special characters should be percent-encoded
+    assert!(target_param.contains('%'), "Special characters should be URL-encoded");
+    
+    // Verify we can decode it back to the original target
+    let decoded = target_param
+        .strip_prefix("target=")
+        .and_then(|encoded| {
+            let param_value = encoded.split('&').next().unwrap();
+            percent_encoding::percent_decode_str(param_value)
+                .decode_utf8()
+                .ok()
+        })
+        .map(|s| s.to_string());
+    
+    assert_eq!(decoded.as_deref(), Some(target), "Decoded target should match original");
+}
+
+#[test]
+fn test_construct_probe_url_with_special_characters_in_module() {
+    let base_url = "http://blackbox.example.com".parse::<Uri>().unwrap();
+    let target = "https://app.example.com";
+    // Module with special characters
+    let module = "http_2xx_custom-probe";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify URL is constructed successfully
+    assert!(result_str.contains("/probe"));
+    assert!(result_str.contains("target="));
+    assert!(result_str.contains("module="));
+
+    // Verify we can decode the module back
+    let query = result.query().unwrap();
+    let module_param = query
+        .split('&')
+        .find(|p| p.starts_with("module="))
+        .unwrap();
+    
+    let decoded = module_param
+        .strip_prefix("module=")
+        .and_then(|encoded| {
+            let param_value = encoded.split('&').next().unwrap();
+            percent_encoding::percent_decode_str(param_value)
+                .decode_utf8()
+                .ok()
+        })
+        .map(|s| s.to_string());
+    
+    assert_eq!(decoded.as_deref(), Some(module), "Decoded module should match original");
+}
+
+#[test]
+fn test_construct_probe_url_with_unicode_characters() {
+    let base_url = "http://blackbox.example.com".parse::<Uri>().unwrap();
+    // Target with Unicode characters
+    let target = "https://例え.jp/パス";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify URL is constructed successfully
+    assert!(result_str.contains("/probe"));
+    assert!(result_str.contains("target="));
+    assert!(result_str.contains("module="));
+
+    // Verify Unicode characters are properly encoded
+    let query = result.query().unwrap();
+    let target_param = query
+        .split('&')
+        .find(|p| p.starts_with("target="))
+        .unwrap();
+    
+    // Unicode should be percent-encoded
+    assert!(target_param.contains('%'), "Unicode characters should be URL-encoded");
+    
+    // Verify we can decode it back to the original target
+    let decoded = target_param
+        .strip_prefix("target=")
+        .and_then(|encoded| {
+            let param_value = encoded.split('&').next().unwrap();
+            percent_encoding::percent_decode_str(param_value)
+                .decode_utf8()
+                .ok()
+        })
+        .map(|s| s.to_string());
+    
+    assert_eq!(decoded.as_deref(), Some(target), "Decoded target should match original");
+}
+
+#[test]
+fn test_construct_probe_url_with_nested_path() {
+    let base_url = "http://blackbox.example.com/api/v1/metrics"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "https://app.example.com";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify nested path is preserved with /probe appended
+    assert!(result_str.contains("/api/v1/metrics/probe"), 
+            "Nested path should be preserved: {}", result_str);
+    assert!(result_str.contains("target="));
+    assert!(result_str.contains("module="));
+}
+
+#[test]
+fn test_construct_probe_url_with_trailing_slash_in_path() {
+    let base_url = "http://blackbox.example.com/metrics/"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "https://app.example.com";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify trailing slash is handled correctly (should not result in double slash)
+    assert!(result_str.contains("/metrics/probe"), 
+            "Path with trailing slash should be handled correctly: {}", result_str);
+    assert!(!result_str.contains("//probe"), 
+            "Should not have double slash: {}", result_str);
+}
+
+#[test]
+fn test_construct_probe_url_with_multiple_query_params() {
+    let base_url = "http://blackbox.example.com?key1=value1&key2=value2&key3=value3"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "https://app.example.com";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let query = result.query().unwrap();
+
+    // Verify all original query parameters are preserved
+    assert!(query.contains("key1=value1"), "First param should be preserved");
+    assert!(query.contains("key2=value2"), "Second param should be preserved");
+    assert!(query.contains("key3=value3"), "Third param should be preserved");
+    
+    // Verify new parameters are added
+    assert!(query.contains("target="), "Target param should be added");
+    assert!(query.contains("module="), "Module param should be added");
+}
+
+#[test]
+fn test_construct_probe_url_with_query_params_containing_special_chars() {
+    let base_url = "http://blackbox.example.com?auth=Bearer%20token123"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "https://app.example.com";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let query = result.query().unwrap();
+
+    // Verify existing encoded query parameter is preserved
+    assert!(query.contains("auth=Bearer%20token123"), 
+            "Encoded query param should be preserved: {}", query);
+    
+    // Verify new parameters are added
+    assert!(query.contains("target="), "Target param should be added");
+    assert!(query.contains("module="), "Module param should be added");
+}
+
+#[test]
+fn test_construct_probe_url_with_port_number() {
+    let base_url = "http://blackbox.example.com:9115"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "https://app.example.com:8443";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify port is preserved in base URL
+    assert!(result_str.starts_with("http://blackbox.example.com:9115"), 
+            "Port should be preserved in base URL: {}", result_str);
+    
+    // Verify target with port is properly encoded
+    assert!(result_str.contains("target="));
+    
+    // Decode and verify target
+    let query = result.query().unwrap();
+    let decoded_target = query
+        .split('&')
+        .find(|p| p.starts_with("target="))
+        .and_then(|p| p.strip_prefix("target="))
+        .and_then(|encoded| {
+            let param_value = encoded.split('&').next().unwrap();
+            percent_encoding::percent_decode_str(param_value)
+                .decode_utf8()
+                .ok()
+        })
+        .map(|s| s.to_string());
+    
+    assert_eq!(decoded_target.as_deref(), Some(target), 
+               "Target with port should be preserved");
+}
+
+#[test]
+fn test_construct_probe_url_with_https_scheme() {
+    let base_url = "https://blackbox.example.com"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "https://app.example.com";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify HTTPS scheme is preserved
+    assert!(result_str.starts_with("https://"), 
+            "HTTPS scheme should be preserved: {}", result_str);
+    assert!(result_str.contains("/probe"));
+    assert!(result_str.contains("target="));
+    assert!(result_str.contains("module="));
+}
+
+#[test]
+fn test_construct_probe_url_with_path_and_multiple_query_params() {
+    let base_url = "http://blackbox.example.com/api/v2?auth=token&region=us-east"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "https://app.example.com/health";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify path is preserved
+    assert!(result_str.contains("/api/v2/probe"), 
+            "Path should be preserved: {}", result_str);
+    
+    // Verify all query parameters are present
+    let query = result.query().unwrap();
+    assert!(query.contains("auth=token"), "Original auth param should be preserved");
+    assert!(query.contains("region=us-east"), "Original region param should be preserved");
+    assert!(query.contains("target="), "Target param should be added");
+    assert!(query.contains("module="), "Module param should be added");
+}
+
+#[test]
+fn test_construct_probe_url_with_empty_path() {
+    let base_url = "http://blackbox.example.com/"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "https://app.example.com";
+    let module = "http_2xx";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify /probe is added correctly (not //probe)
+    assert!(result_str.contains("/probe?"), 
+            "Should have /probe path: {}", result_str);
+    assert!(!result_str.contains("//probe"), 
+            "Should not have double slash: {}", result_str);
+}
+
+#[test]
+fn test_construct_probe_url_with_ipv4_address() {
+    let base_url = "http://192.168.1.100:9115"
+        .parse::<Uri>()
+        .unwrap();
+    let target = "http://10.0.0.1";
+    let module = "icmp";
+
+    let result = construct_probe_url(&base_url, target, module).unwrap();
+    let result_str = result.to_string();
+
+    // Verify IPv4 address is preserved
+    assert!(result_str.starts_with("http://192.168.1.100:9115"), 
+            "IPv4 address should be preserved: {}", result_str);
+    
+    // Verify target IPv4 is properly encoded
+    let query = result.query().unwrap();
+    let decoded_target = query
+        .split('&')
+        .find(|p| p.starts_with("target="))
+        .and_then(|p| p.strip_prefix("target="))
+        .and_then(|encoded| {
+            let param_value = encoded.split('&').next().unwrap();
+            percent_encoding::percent_decode_str(param_value)
+                .decode_utf8()
+                .ok()
+        })
+        .map(|s| s.to_string());
+    
+    assert_eq!(decoded_target.as_deref(), Some(target), 
+               "Target IPv4 should be preserved");
+}
+
 #[test]
 fn test_context_on_response_success() {
     // Test that on_response successfully parses Prometheus text format
@@ -155,6 +476,66 @@ fn test_context_on_response_parse_error() {
     assert!(events.is_none());
     // Note: PrometheusParseError is emitted via emit! macro, which we can't easily test here
     // but the code path is verified
+}
+
+#[test]
+fn test_context_on_response_parse_error_malformed_metric() {
+    // Test parse error with malformed metric line
+    let mut context = BlackboxExporterContext {
+        target: "https://example.com".to_string(),
+        module: "http_2xx".to_string(),
+    };
+
+    let url = "http://blackbox.example.com/probe?target=https://example.com&module=http_2xx"
+        .parse::<Uri>()
+        .unwrap();
+
+    // Create a response with malformed metric (missing value)
+    let body = Bytes::from(
+        r#"# HELP probe_success Test metric
+# TYPE probe_success gauge
+probe_success
+"#,
+    );
+
+    let response = http::Response::builder().status(200).body(()).unwrap();
+    let (parts, _) = response.into_parts();
+
+    // Call on_response - should return None and emit PrometheusParseError
+    let events = context.on_response(&url, &parts, &body);
+
+    // Verify no events were returned (parse failed)
+    assert!(events.is_none());
+}
+
+#[test]
+fn test_context_on_response_parse_error_invalid_value() {
+    // Test parse error with invalid metric value
+    let mut context = BlackboxExporterContext {
+        target: "https://example.com".to_string(),
+        module: "http_2xx".to_string(),
+    };
+
+    let url = "http://blackbox.example.com/probe?target=https://example.com&module=http_2xx"
+        .parse::<Uri>()
+        .unwrap();
+
+    // Create a response with invalid metric value (not a number)
+    let body = Bytes::from(
+        r#"# HELP probe_success Test metric
+# TYPE probe_success gauge
+probe_success not_a_number
+"#,
+    );
+
+    let response = http::Response::builder().status(200).body(()).unwrap();
+    let (parts, _) = response.into_parts();
+
+    // Call on_response - should return None and emit PrometheusParseError
+    let events = context.on_response(&url, &parts, &body);
+
+    // Verify no events were returned (parse failed)
+    assert!(events.is_none());
 }
 
 #[test]
