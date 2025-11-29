@@ -1,7 +1,15 @@
-// Unit tests for blackbox_exporter source
+// Unit tests and integration tests for blackbox_exporter source
 
 use super::*;
 use bytes::Bytes;
+use std::time::Duration;
+use warp::Filter;
+
+use crate::test_util::{
+    addr::next_addr,
+    components::{HTTP_PULL_SOURCE_TAGS, run_and_assert_source_compliance},
+    wait_for_tcp,
+};
 
 #[test]
 fn test_construct_probe_url_basic() {
