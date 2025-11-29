@@ -1,0 +1,55 @@
+# Blackbox Exporter multiple targets example
+# ------------------------------------------------------------------------------
+# Scraping metrics from multiple Blackbox Exporter probes with different modules
+
+data_dir: "/var/lib/vector"
+
+# Ingest
+sources:
+  # HTTP probes for web services
+  blackbox_http:
+    type: "blackbox_exporter"
+    url: "http://localhost:9115"
+    targets:
+      - "https://api.example.com/health"
+      - "https://app.example.com"
+    module: "http_2xx"
+    scrape_interval_secs: 15
+    scrape_timeout_secs: 10
+
+  # HTTPS probes with certificate validation
+  blackbox_https:
+    type: "blackbox_exporter"
+    url: "http://localhost:9115"
+    targets:
+      - "https://secure.example.com"
+      - "https://payment.example.com"
+    module: "http_2xx_tls"
+    scrape_interval_secs: 60
+    scrape_timeout_secs: 15
+
+  # TCP probes for service availability
+  blackbox_tcp:
+    type: "blackbox_exporter"
+    url: "http://localhost:9115"
+    targets:
+      - "database.example.com:5432"
+      - "redis.example.com:6379"
+    module: "tcp_connect"
+    scrape_interval_secs: 30
+    scrape_timeout_secs: 5
+
+# Transform - Add environment label
+transforms:
+  add_env:
+    inputs: ["blackbox_http", "blackbox_https", "blackbox_tcp"]
+    type: "remap"
+    source: |
+      .tags.environment = "production"
+
+# Output
+sinks:
+  prometheus:
+    inputs: ["add_env"]
+    type: "prometheus_remote_write"
+    endpoint: "http://localhost:9090/api/v1/write"

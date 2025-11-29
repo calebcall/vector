@@ -1,0 +1,30 @@
+# Blackbox Exporter ICMP probing example
+# ------------------------------------------------------------------------------
+# Scraping metrics from Blackbox Exporter ICMP probes and sending to Prometheus
+
+data_dir: "/var/lib/vector"
+
+# Ingest
+sources:
+  blackbox_icmp:
+    type: "blackbox_exporter"
+    # URL of the Blackbox Exporter instance
+    url: "http://localhost:9115"
+    # Targets to probe (IP addresses or hostnames)
+    targets:
+      - "8.8.8.8"
+      - "1.1.1.1"
+      - "example.com"
+    # Module to use for ICMP probing (must be defined in Blackbox Exporter config)
+    module: "icmp"
+    # Scrape interval in seconds
+    scrape_interval_secs: 30
+    # Scrape timeout in seconds
+    scrape_timeout_secs: 5
+
+# Output
+sinks:
+  prometheus:
+    inputs: ["blackbox_icmp"]
+    type: "prometheus_remote_write"
+    endpoint: "http://localhost:9090/api/v1/write"

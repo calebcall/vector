@@ -21,8 +21,12 @@ fn utc_timestamp(timestamp: Option<i64>, default: DateTime<Utc>) -> DateTime<Utc
         .unwrap_or(default)
 }
 
-#[cfg(any(test, feature = "sources-prometheus-scrape"))]
-pub(super) fn parse_text(packet: &str) -> Result<Vec<Event>, ParserError> {
+#[cfg(any(
+    test,
+    feature = "sources-prometheus-scrape",
+    feature = "sources-blackbox_exporter"
+))]
+pub(crate) fn parse_text(packet: &str) -> Result<Vec<Event>, ParserError> {
     vector_lib::prometheus::parser::parse_text(packet)
         .map(|group| reparse_groups(group, vec![], false, false))
 }

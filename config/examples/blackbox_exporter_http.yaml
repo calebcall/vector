@@ -1,0 +1,31 @@
+# Blackbox Exporter HTTP probing example
+# ------------------------------------------------------------------------------
+# Scraping metrics from Blackbox Exporter HTTP probes and sending to console
+
+data_dir: "/var/lib/vector"
+
+# Ingest
+sources:
+  blackbox_http:
+    type: "blackbox_exporter"
+    # URL of the Blackbox Exporter instance
+    url: "http://localhost:9115"
+    # Targets to probe
+    targets:
+      - "https://example.com"
+      - "https://www.google.com"
+      - "https://github.com"
+    # Module to use for probing (must be defined in Blackbox Exporter config)
+    module: "http_2xx"
+    # Scrape interval in seconds
+    scrape_interval_secs: 15
+    # Scrape timeout in seconds
+    scrape_timeout_secs: 10
+
+# Output
+sinks:
+  console:
+    inputs: ["blackbox_http"]
+    type: "console"
+    encoding:
+      codec: "json"

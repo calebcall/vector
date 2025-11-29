@@ -630,6 +630,7 @@ sources-metrics = [
   "dep:prost",
   "sources-apache_metrics",
   "sources-aws_ecs_metrics",
+  "sources-blackbox_exporter",
   "sources-eventstoredb_metrics",
   "sources-host_metrics",
   "sources-internal_metrics",
@@ -649,6 +650,7 @@ sources-aws_ecs_metrics = ["sources-utils-http-client"]
 sources-aws_kinesis_firehose = ["dep:base64"]
 sources-aws_s3 = ["aws-core", "dep:aws-sdk-sqs", "dep:aws-sdk-s3", "dep:async-compression", "sources-aws_sqs", "tokio-util/io"]
 sources-aws_sqs = ["aws-core", "dep:aws-sdk-sqs"]
+sources-blackbox_exporter = ["sources-utils-http-client", "sources-prometheus-scrape"]
 sources-datadog_agent = ["sources-utils-http-encoding", "protobuf-build", "dep:prost"]
 sources-demo_logs = ["dep:fakedata"]
 sources-dnstap = ["sources-utils-net-tcp", "dep:base64", "dep:hickory-proto", "dep:dnsmsg-parser", "dep:dnstap-parser", "protobuf-build", "dep:prost"]

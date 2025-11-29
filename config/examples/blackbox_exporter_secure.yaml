@@ -1,0 +1,41 @@
+# Blackbox Exporter with TLS and authentication example
+# ------------------------------------------------------------------------------
+# Scraping metrics from a secured Blackbox Exporter instance
+
+data_dir: "/var/lib/vector"
+
+# Ingest
+sources:
+  blackbox_secure:
+    type: "blackbox_exporter"
+    # HTTPS URL of the Blackbox Exporter instance
+    url: "https://blackbox.example.com"
+    # Targets to probe
+    targets:
+      - "https://api.example.com"
+      - "https://app.example.com"
+    # Module to use for probing
+    module: "http_2xx"
+    # Scrape interval in seconds
+    scrape_interval_secs: 15
+    # Scrape timeout in seconds
+    scrape_timeout_secs: 10
+    # TLS configuration
+    tls:
+      ca_file: "/etc/vector/ca.crt"
+      crt_file: "/etc/vector/client.crt"
+      key_file: "/etc/vector/client.key"
+      verify_certificate: true
+      verify_hostname: true
+    # Authentication configuration
+    auth:
+      strategy: "basic"
+      user: "vector"
+      password: "${BLACKBOX_PASSWORD}"
+
+# Output
+sinks:
+  prometheus:
+    inputs: ["blackbox_secure"]
+    type: "prometheus_remote_write"
+    endpoint: "http://localhost:9090/api/v1/write"
