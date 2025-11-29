@@ -422,6 +422,7 @@ urls: {
 	postgresql_sqlx_correspondence:             "https://docs.rs/sqlx/latest/sqlx/postgres/types/index.html"
 	procfs:                                     "https://en.wikipedia.org/wiki/Procfs#:~:text=The%20proc%20filesystem%20(procfs)%20is,in%20the%20kernel%20than%20traditional"
 	prometheus:                                 "https://prometheus.io/"
+	prometheus_blackbox_exporter:               "\(github)/prometheus/blackbox_exporter"
 	prometheus_client:                          "https://prometheus.io/docs/instrumenting/clientlibs/"
 	prometheus_counter:                         "https://prometheus.io/docs/concepts/metric_types/#counter"
 	prometheus_gauge:                           "https://prometheus.io/docs/concepts/metric_types/#gauge"
