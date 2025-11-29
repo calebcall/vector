@@ -47,12 +47,11 @@ jobs:
           VERSION=33.1
           if ! protoc --version 2>/dev/null | grep -q "$VERSION"; then
             wget https://github.com/protocolbuffers/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-x86_64.zip
-            unzip -o protoc-${VERSION}-linux-x86_64.zip -d ~/.local
+            sudo unzip -o protoc-${VERSION}-linux-x86_64.zip -d /usr/local
           fi
-          echo "PROTOC=$HOME/.local/bin/protoc" >> ${GITHUB_ENV}
-          echo "PATH=$PATH:$HOME/.local/bin" >> ${GITHUB_ENV}
+          echo "PROTOC=/usr/local/bin/protoc" >> ${GITHUB_ENV}
           # Verify protoc is accessible
-          ~/.local/bin/protoc --version
+          protoc --version
 
       # - name: Cache Cargo Registry
       #   uses: actions/cache@v4
