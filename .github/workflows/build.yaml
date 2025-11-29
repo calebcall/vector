@@ -45,8 +45,10 @@ jobs:
       - name: Install Protoc
         run: |
           VERSION=33.1
-          wget https://github.com/protocolbuffers/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-x86_64.zip
-          unzip protoc-${VERSION}-linux-x86_64.zip -d ~/.local
+            if not (protoc --version | str contains $VERSION); then
+            wget https://github.com/protocolbuffers/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-x86_64.zip
+            unzip protoc-${VERSION}-linux-x86_64.zip -do ~/.local
+            fi
           export PATH="$PATH:$HOME/.local/bin"
 
       - name: Set protoc path
