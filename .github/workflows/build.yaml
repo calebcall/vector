@@ -38,7 +38,14 @@ jobs:
       - name: Setup Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev cmake musl-tools pigz jq unzip
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake musl-tools pigz jq unzip libsasl2-dev
+
+      - name: Install Protoc
+        run: |
+          VERSION=33.1
+          wget https://github.com/protocolbuffers/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-x86_64.zip
+          unzip protoc-${VERSION}-linux-x86_64.zip -d ~/.local
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Cache Cargo Registry
         uses: actions/cache@v4
