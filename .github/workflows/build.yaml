@@ -14,7 +14,7 @@ permissions:
 jobs:
   build-and-test:
     name: Build and Test
-    runs-on: ubuntu-latest
+    runs-on: vector-builder
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}
     steps:
