@@ -49,11 +49,10 @@ jobs:
             wget https://github.com/protocolbuffers/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-x86_64.zip
             unzip -o protoc-${VERSION}-linux-x86_64.zip -d ~/.local
           fi
-          export PATH="$PATH:$HOME/.local/bin"
-
-      - name: Set protoc path
-        run: |
           echo "PROTOC=$HOME/.local/bin/protoc" >> ${GITHUB_ENV}
+          echo "PATH=$PATH:$HOME/.local/bin" >> ${GITHUB_ENV}
+          # Verify protoc is accessible
+          ~/.local/bin/protoc --version
 
       # - name: Cache Cargo Registry
       #   uses: actions/cache@v4
