@@ -39,7 +39,7 @@ jobs:
       - name: Setup Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev cmake musl-tools pigz jq unzip libsasl2-dev musl-dev linux-headers-generic
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake musl-tools pigz jq unzip libsasl2-dev musl-dev perl
 
       - name: Install Nextest
         run: |
@@ -80,8 +80,7 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=+crt-static"
           CC_x86_64_unknown_linux_musl: musl-gcc
-          OPENSSL_STATIC: "1"
-          OPENSSL_DIR: /usr
+          CFLAGS_x86_64_unknown_linux_musl: "-I/usr/include/x86_64-linux-musl"
         run: |
           cargo build --release --target x86_64-unknown-linux-musl --no-default-features --features target-x86_64-unknown-linux-musl
           echo "Build completed successfully"
