@@ -34,7 +34,6 @@ jobs:
           toolchain: stable
           profile: minimal
           target: x86_64-unknown-linux-musl
-          override: true
 
       - name: Setup Build Dependencies
         run: |
@@ -50,39 +49,55 @@ jobs:
           VERSION=33.1
           wget https://github.com/protocolbuffers/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-x86_64.zip
           unzip protoc-${VERSION}-linux-x86_64.zip -d ~/.local
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          export PATH="$PATH:$HOME/.local/bin"
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+      - name: Set protoc path
+        run: |
+          echo "PROTOC=$HOME/.local/bin/protoc" >> ${GITHUB_ENV}
 
-      - name: Cache Cargo Index
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-git-
+      # - name: Cache Cargo Registry
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cargo/registry
+      #     key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-cargo-registry-
 
-      - name: Cache Target Directory
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-target-
+      # - name: Cache Cargo Index
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.cargo/git
+      #     key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-cargo-git-
+
+      # - name: Cache Target Directory
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: target
+      #     key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-target-
+
+      # - name: Build OpenSSL for musl
+      #   run: |
+      #     wget https://www.openssl.org/source/openssl-1.1.1w.tar.gz
+      #     tar xzf openssl-1.1.1w.tar.gz
+      #     cd openssl-1.1.1w
+      #     CC=musl-gcc ./Configure no-shared no-async --prefix=/musl --openssldir=/musl/ssl linux-x86_64
+      #     make -j$(nproc)
+      #     sudo make install_sw
+      #     cd ..
 
       - name: Build Vector
-        env:
-          RUSTFLAGS: "-C target-feature=+crt-static"
-          CC_x86_64_unknown_linux_musl: musl-gcc
-          CFLAGS_x86_64_unknown_linux_musl: "-I/usr/include/x86_64-linux-musl"
+        # env:
+        #   RUSTFLAGS: "-C target-feature=+crt-static"
+        #   CC_x86_64_unknown_linux_musl: musl-gcc
+        #   OPENSSL_STATIC: "1"
+        #   OPENSSL_DIR: /musl
+        #   OPENSSL_NO_VENDOR: "1"
         run: |
-          cargo build --release --target x86_64-unknown-linux-musl --no-default-features --features target-x86_64-unknown-linux-musl
+          cargo build --release
           echo "Build completed successfully"
 
       - name: Run Tests
