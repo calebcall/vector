@@ -29,11 +29,9 @@ jobs:
           echo "Building version: $VERSION"
 
       - name: Setup Rust Toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          profile: minimal
-          target: x86_64-unknown-linux-musl
+          targets: x86_64-unknown-linux-musl
 
       - name: Setup Build Dependencies
         run: |
