@@ -38,7 +38,7 @@ jobs:
       - name: Setup Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libssl-dev cmake musl-tools pigz jq unzip libsasl2-dev
+          sudo apt-get install -y build-essential pkg-config libssl-dev cmake musl-tools pigz jq unzip libsasl2-dev musl-dev
 
       - name: Install Protoc
         run: |
@@ -73,13 +73,13 @@ jobs:
 
       - name: Build Vector
         run: |
-          cargo build --release --target x86_64-unknown-linux-musl --features sources-blackbox_exporter
+          make build-x86_64-unknown-linux-musl
           echo "Build completed successfully"
 
-      - name: Run Blackbox Exporter Tests
+      - name: Run Tests
         run: |
-          cargo test --features sources-blackbox_exporter blackbox_exporter
-          echo "All blackbox_exporter tests passed"
+          make test
+          echo "All tests passed"
 
       - name: Create Release Archive
         run: |
