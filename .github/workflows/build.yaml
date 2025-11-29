@@ -40,6 +40,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libssl-dev cmake musl-tools pigz jq unzip libsasl2-dev musl-dev
 
+      - name: Install Nextest
+        run: |
+          curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+
       - name: Install Protoc
         run: |
           VERSION=33.1
@@ -72,13 +76,15 @@ jobs:
             ${{ runner.os }}-target-
 
       - name: Build Vector
+        env:
+          RUSTFLAGS: "-C target-feature=+crt-static"
         run: |
-          make build-x86_64-unknown-linux-musl
+          cargo build --release --target x86_64-unknown-linux-musl --no-default-features --features target-x86_64-unknown-linux-musl
           echo "Build completed successfully"
 
       - name: Run Tests
         run: |
-          make test
+          cargo nextest run --workspace --no-fail-fast --no-default-features --features default
           echo "All tests passed"
 
       - name: Create Release Archive
