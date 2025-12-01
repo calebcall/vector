@@ -1,6 +1,8 @@
-# Blackbox Exporter HTTP probing example
+# Blackbox Exporter HTTP probing example with optional labels
 # ------------------------------------------------------------------------------
 # Scraping metrics from Blackbox Exporter HTTP probes and sending to console
+# This example demonstrates using predefined optional labels to enrich metrics
+# with geographic and infrastructure context
 
 data_dir: "/var/lib/vector"
 
@@ -21,6 +23,19 @@ sources:
     scrape_interval_secs: 15
     # Scrape timeout in seconds
     scrape_timeout_secs: 10
+    # Optional labels to enrich all metrics with contextual information
+    # Geohash of the probe location
+    geohash: "9qx7hh9jd"
+    # Probe region (e.g., AMER, EMEA, APAC)
+    region: "AMER"
+    # Probe location (city or location name)
+    location: "Oregon"
+    # Two-digit country code
+    country: "US"
+    # Check friendly name
+    name: "Public Sites Monitor"
+    # Infrastructure provider
+    provider: "AWS"
 
 # Output
 sinks:
