@@ -87,6 +87,11 @@ jobs:
       #     sudo make install_sw
       #     cd ..
 
+      - name: Run Tests
+        run: |
+          cargo nextest run --release --workspace --no-fail-fast --no-default-features --features default -E 'test(blackbox_exporter)'
+          echo "All tests passed"
+      
       - name: Build Vector
         # env:
         #   RUSTFLAGS: "-C target-feature=+crt-static"
@@ -97,12 +102,7 @@ jobs:
         run: |
           cargo build --release
           echo "Build completed successfully"
-
-      - name: Run Tests
-        run: |
-          cargo nextest run --release --workspace --no-fail-fast --no-default-features --features default -E 'test(blackbox_exporter)' --slow-timeout 5m --terminate-after 4
-          echo "All tests passed"
-
+      
       - name: Create Release Archive
         run: |
           mkdir -p release
