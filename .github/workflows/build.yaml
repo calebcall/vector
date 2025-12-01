@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - feat/*
   workflow_dispatch:
 
 permissions:
@@ -87,22 +88,21 @@ jobs:
       #     sudo make install_sw
       #     cd ..
 
-      - name: Build Vector and Run Tests
+      - name: Run Tests
         run: |
-          cargo build --release -p vector
           cargo nextest run --release --workspace --no-fail-fast -E 'test(blackbox_exporter)'
           echo "All tests passed"
       
-      # - name: Build Vector
-      #   # env:
-      #   #   RUSTFLAGS: "-C target-feature=+crt-static"
-      #   #   CC_x86_64_unknown_linux_musl: musl-gcc
-      #   #   OPENSSL_STATIC: "1"
-      #   #   OPENSSL_DIR: /musl
-      #   #   OPENSSL_NO_VENDOR: "1"
-      #   run: |
-      #     cargo build --release
-      #     echo "Build completed successfully"
+      - name: Build Vector
+        # env:
+        #   RUSTFLAGS: "-C target-feature=+crt-static"
+        #   CC_x86_64_unknown_linux_musl: musl-gcc
+        #   OPENSSL_STATIC: "1"
+        #   OPENSSL_DIR: /musl
+        #   OPENSSL_NO_VENDOR: "1"
+        run: |
+          cargo build --release -p vector
+          echo "Build completed successfully"
       
       - name: Create Release Archive
         run: |
@@ -122,7 +122,8 @@ jobs:
   release:
     name: Create Release
     needs: build-and-test
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: vector-builder
     environment:
       name: production
       url: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.build-and-test.outputs.version }}
