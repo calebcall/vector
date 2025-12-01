@@ -87,21 +87,22 @@ jobs:
       #     sudo make install_sw
       #     cd ..
 
-      - name: Run Tests
+      - name: Build Vector and Run Tests
         run: |
-          cargo nextest run --release --workspace --no-fail-fast --no-default-features --features default -E 'test(blackbox_exporter)'
+          cargo build --release -p vector
+          cargo nextest run --release --workspace --no-fail-fast -E 'test(blackbox_exporter)'
           echo "All tests passed"
       
-      - name: Build Vector
-        # env:
-        #   RUSTFLAGS: "-C target-feature=+crt-static"
-        #   CC_x86_64_unknown_linux_musl: musl-gcc
-        #   OPENSSL_STATIC: "1"
-        #   OPENSSL_DIR: /musl
-        #   OPENSSL_NO_VENDOR: "1"
-        run: |
-          cargo build --release
-          echo "Build completed successfully"
+      # - name: Build Vector
+      #   # env:
+      #   #   RUSTFLAGS: "-C target-feature=+crt-static"
+      #   #   CC_x86_64_unknown_linux_musl: musl-gcc
+      #   #   OPENSSL_STATIC: "1"
+      #   #   OPENSSL_DIR: /musl
+      #   #   OPENSSL_NO_VENDOR: "1"
+      #   run: |
+      #     cargo build --release
+      #     echo "Build completed successfully"
       
       - name: Create Release Archive
         run: |
