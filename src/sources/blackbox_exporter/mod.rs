@@ -100,6 +100,68 @@ pub struct BlackboxExporterConfig {
     #[configurable(derived)]
     #[configurable(metadata(docs::advanced))]
     auth: Option<Auth>,
+
+    /// Geohash of the probe location.
+    ///
+    /// This label will be added to all scraped metrics to identify the precise
+    /// geographic location of the probe.
+    #[configurable(metadata(docs::examples = "9qx7hh9jd"))]
+    #[configurable(metadata(docs::examples = "u4pruydqqvj"))]
+    geohash: Option<String>,
+
+    /// Probe region (e.g., AMER, EMEA, APAC).
+    ///
+    /// This label will be added to all scraped metrics to identify which broad
+    /// geographic region the probe is in.
+    #[configurable(metadata(docs::examples = "AMER"))]
+    #[configurable(metadata(docs::examples = "EMEA"))]
+    #[configurable(metadata(docs::examples = "APAC"))]
+    region: Option<String>,
+
+    /// Probe location (city or location name).
+    ///
+    /// This label will be added to all scraped metrics to identify the specific
+    /// city or location name of the probe.
+    #[configurable(metadata(docs::examples = "Paris"))]
+    #[configurable(metadata(docs::examples = "New York"))]
+    #[configurable(metadata(docs::examples = "Oregon"))]
+    location: Option<String>,
+
+    /// Two-digit country code.
+    ///
+    /// This label will be added to all scraped metrics to identify which country
+    /// the probe is located in.
+    #[configurable(metadata(docs::examples = "US"))]
+    #[configurable(metadata(docs::examples = "CA"))]
+    #[configurable(metadata(docs::examples = "FR"))]
+    country: Option<String>,
+
+    /// Check friendly name.
+    ///
+    /// This label will be added to all scraped metrics to give the check a
+    /// friendly, human-readable identifier.
+    #[configurable(metadata(docs::examples = "Google"))]
+    #[configurable(metadata(docs::examples = "Homepage"))]
+    #[configurable(metadata(docs::examples = "API Health"))]
+    name: Option<String>,
+
+    /// Infrastructure provider.
+    ///
+    /// This label will be added to all scraped metrics to identify which
+    /// infrastructure provider the probe is running on.
+    #[configurable(metadata(docs::examples = "AWS"))]
+    #[configurable(metadata(docs::examples = "GCP"))]
+    #[configurable(metadata(docs::examples = "AZURE"))]
+    provider: Option<String>,
+
+    /// Additional custom labels to add to all metrics.
+    ///
+    /// This allows you to add arbitrary key-value pairs as labels to all scraped
+    /// metrics. These labels are added after the predefined optional labels.
+    #[configurable(metadata(
+        docs::additional_props_description = "An arbitrary key-value pair to add as a label."
+    ))]
+    labels: Option<HashMap<String, String>>,
 }
 
 impl GenerateConfig for BlackboxExporterConfig {
@@ -112,6 +174,16 @@ impl GenerateConfig for BlackboxExporterConfig {
             timeout: default_timeout(),
             tls: None,
             auth: None,
+            geohash: Some("9qx7hh9jd".to_string()),
+            region: Some("AMER".to_string()),
+            location: Some("Oregon".to_string()),
+            country: Some("US".to_string()),
+            name: Some("Example Check".to_string()),
+            provider: Some("AWS".to_string()),
+            labels: Some(HashMap::from([
+                ("environment".to_string(), "production".to_string()),
+                ("team".to_string(), "platform".to_string()),
+            ])),
         })
         .unwrap()
     }
@@ -142,6 +214,7 @@ impl SourceConfig for BlackboxExporterConfig {
         // Create BlackboxExporterBuilder instance
         let builder = BlackboxExporterBuilder {
             module: self.module.clone(),
+            optional_labels: OptionalLabels::from_config(self),
         };
 
         // Emit warning if timeout >= interval
@@ -213,10 +286,41 @@ fn construct_probe_url(
     url_string.parse()
 }
 
+/// Optional labels to add to all scraped metrics.
+///
+/// This struct holds both predefined optional labels (geohash, region, location,
+/// country, name, provider) and custom ad-hoc labels from the labels map.
+#[derive(Clone, Debug)]
+struct OptionalLabels {
+    geohash: Option<String>,
+    region: Option<String>,
+    location: Option<String>,
+    country: Option<String>,
+    name: Option<String>,
+    provider: Option<String>,
+    custom: HashMap<String, String>,
+}
+
+impl OptionalLabels {
+    /// Constructs OptionalLabels from BlackboxExporterConfig.
+    fn from_config(config: &BlackboxExporterConfig) -> Self {
+        Self {
+            geohash: config.geohash.clone(),
+            region: config.region.clone(),
+            location: config.location.clone(),
+            country: config.country.clone(),
+            name: config.name.clone(),
+            provider: config.provider.clone(),
+            custom: config.labels.clone().unwrap_or_default(),
+        }
+    }
+}
+
 /// Captures the configuration options required to build request-specific context.
 #[derive(Clone)]
 struct BlackboxExporterBuilder {
     module: String,
+    optional_labels: OptionalLabels,
 }
 
 impl HttpClientBuilder for BlackboxExporterBuilder {
@@ -242,6 +346,7 @@ impl HttpClientBuilder for BlackboxExporterBuilder {
         BlackboxExporterContext {
             target,
             module: self.module.clone(),
+            optional_labels: self.optional_labels.clone(),
         }
     }
 }
@@ -250,6 +355,8 @@ impl HttpClientBuilder for BlackboxExporterBuilder {
 struct BlackboxExporterContext {
     target: String,
     module: String,
+    #[allow(dead_code)]
+    optional_labels: OptionalLabels,
 }
 
 impl HttpClientContext for BlackboxExporterContext {
@@ -294,6 +401,50 @@ impl HttpClientContext for BlackboxExporterContext {
             }
             // Add new module tag
             metric.replace_tag("module".to_string(), self.module.clone());
+
+            // Add predefined optional labels (after target and module)
+            self.add_optional_label(metric, "geohash", &self.optional_labels.geohash);
+            self.add_optional_label(metric, "region", &self.optional_labels.region);
+            self.add_optional_label(metric, "location", &self.optional_labels.location);
+            self.add_optional_label(metric, "country", &self.optional_labels.country);
+            self.add_optional_label(metric, "name", &self.optional_labels.name);
+            self.add_optional_label(metric, "provider", &self.optional_labels.provider);
+
+            // Add ad-hoc custom labels
+            // Ad-hoc labels override predefined labels with the same key
+            for (key, value) in &self.optional_labels.custom {
+                self.add_optional_label(metric, key, &Some(value.clone()));
+            }
+        }
+    }
+}
+
+impl BlackboxExporterContext {
+    /// Adds an optional label to a metric if the value is present and non-empty.
+    ///
+    /// If the metric already contains a tag with the same key, the existing tag
+    /// is renamed to `exported_<key>` before adding the new tag.
+    ///
+    /// Empty string values are skipped and no tag is added.
+    fn add_optional_label(
+        &self,
+        metric: &mut vector_lib::event::Metric,
+        key: &str,
+        value: &Option<String>,
+    ) {
+        if let Some(val) = value {
+            // Skip empty strings
+            if val.is_empty() {
+                return;
+            }
+
+            // Handle conflicts by renaming existing tag
+            if let Some(existing) = metric.remove_tag(key) {
+                metric.replace_tag(format!("exported_{}", key), existing);
+            }
+
+            // Add new tag
+            metric.replace_tag(key.to_string(), val.clone());
         }
     }
 }
