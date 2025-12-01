@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - feat/*
   workflow_dispatch:
 
 permissions:
@@ -87,6 +88,11 @@ jobs:
       #     sudo make install_sw
       #     cd ..
 
+      - name: Run Tests
+        run: |
+          cargo nextest run --release --workspace --no-fail-fast -E 'test(blackbox_exporter)'
+          echo "All tests passed"
+      
       - name: Build Vector
         # env:
         #   RUSTFLAGS: "-C target-feature=+crt-static"
@@ -95,21 +101,16 @@ jobs:
         #   OPENSSL_DIR: /musl
         #   OPENSSL_NO_VENDOR: "1"
         run: |
-          cargo build --release
+          cargo build --release -p vector
           echo "Build completed successfully"
-
-      - name: Run Tests
-        run: |
-          cargo nextest run --release --workspace --no-fail-fast --no-default-features --features default -E 'test(blackbox_exporter)' --slow-timeout 5m --terminate-after 4
-          echo "All tests passed"
-
+      
       - name: Create Release Archive
         run: |
           mkdir -p release
-          cp target/x86_64-unknown-linux-musl/release/vector release/
+          cp target/release/vector release/
           cd release
-          tar -czf vector-${{ steps.get_version.outputs.VERSION }}-x86_64-unknown-linux-musl.tar.gz vector
-          sha256sum vector-${{ steps.get_version.outputs.VERSION }}-x86_64-unknown-linux-musl.tar.gz > vector-${{ steps.get_version.outputs.VERSION }}-x86_64-unknown-linux-musl.tar.gz.sha256
+          tar -czf vector-${{ steps.get_version.outputs.VERSION }}.tar.gz vector
+          sha256sum vector-${{ steps.get_version.outputs.VERSION }}.tar.gz > vector-${{ steps.get_version.outputs.VERSION }}.tar.gz.sha256
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
@@ -121,7 +122,8 @@ jobs:
   release:
     name: Create Release
     needs: build-and-test
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: vector-builder
     environment:
       name: production
       url: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.build-and-test.outputs.version }}
@@ -140,8 +142,8 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            release/vector-${{ needs.build-and-test.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
-            release/vector-${{ needs.build-and-test.outputs.version }}-x86_64-unknown-linux-musl.tar.gz.sha256
+            release/vector-${{ needs.build-and-test.outputs.version }}.tar.gz
+            release/vector-${{ needs.build-and-test.outputs.version }}.tar.gz.sha256
           body: |
             ## Vector v${{ needs.build-and-test.outputs.version }}
             
@@ -151,8 +153,8 @@ jobs:
             
             ### Installation
             ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.build-and-test.outputs.version }}/vector-${{ needs.build-and-test.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
-            tar -xzf vector-${{ needs.build-and-test.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
+            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.build-and-test.outputs.version }}/vector-${{ needs.build-and-test.outputs.version }}.tar.gz
+            tar -xzf vector-${{ needs.build-and-test.outputs.version }}.tar.gz
             ./vector --version
             ```
         env:

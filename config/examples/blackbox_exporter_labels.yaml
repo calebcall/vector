@@ -1,0 +1,92 @@
+# Blackbox Exporter with combined predefined and ad-hoc labels
+# ------------------------------------------------------------------------------
+# Scraping metrics from Blackbox Exporter with both predefined optional labels
+# and custom ad-hoc labels. This example demonstrates the full flexibility of
+# the optional labels feature.
+
+data_dir: "/var/lib/vector"
+
+# Ingest
+sources:
+  # Probe from US West Coast location
+  blackbox_us_west:
+    type: "blackbox_exporter"
+    url: "http://localhost:9115"
+    targets:
+      - "https://api.example.com"
+      - "https://app.example.com"
+    module: "http_2xx"
+    scrape_interval_secs: 15
+    scrape_timeout_secs: 10
+    # Predefined optional labels for geographic context
+    geohash: "9qx7hh9jd"
+    region: "AMER"
+    location: "Oregon"
+    country: "US"
+    name: "US West API Monitor"
+    provider: "AWS"
+    # Ad-hoc custom labels for additional context
+    labels:
+      environment: "production"
+      team: "platform"
+      datacenter: "us-west-2"
+      cost_center: "engineering"
+
+  # Probe from European location
+  blackbox_eu:
+    type: "blackbox_exporter"
+    url: "http://blackbox-eu.example.com"
+    targets:
+      - "https://api.example.com"
+      - "https://app.example.com"
+    module: "http_2xx"
+    scrape_interval_secs: 15
+    scrape_timeout_secs: 10
+    # Predefined optional labels for European probe
+    geohash: "u4pruydqqvj"
+    region: "EMEA"
+    location: "Paris"
+    country: "FR"
+    name: "EU API Monitor"
+    provider: "GCP"
+    # Ad-hoc custom labels
+    labels:
+      environment: "production"
+      team: "platform"
+      datacenter: "europe-west1"
+      cost_center: "engineering"
+
+  # Probe with partial labels (only some predefined labels)
+  blackbox_minimal:
+    type: "blackbox_exporter"
+    url: "http://localhost:9115"
+    targets:
+      - "https://internal.example.com"
+    module: "http_2xx"
+    scrape_interval_secs: 30
+    scrape_timeout_secs: 10
+    # Only specify the labels you need
+    region: "AMER"
+    name: "Internal Services"
+    # Ad-hoc labels can be used without predefined labels
+    labels:
+      environment: "staging"
+      internal: "true"
+
+# Transform - Optional: Add computed labels based on metric values
+transforms:
+  enrich_metrics:
+    inputs: ["blackbox_us_west", "blackbox_eu", "blackbox_minimal"]
+    type: "remap"
+    source: |
+      # Add alert severity based on probe success
+      if .name == "probe_success" && .gauge.value == 0 {
+        .tags.severity = "critical"
+      }
+
+# Output
+sinks:
+  prometheus:
+    inputs: ["enrich_metrics"]
+    type: "prometheus_remote_write"
+    endpoint: "http://localhost:9090/api/v1/write"

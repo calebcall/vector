@@ -1,6 +1,8 @@
-# Blackbox Exporter multiple targets example
+# Blackbox Exporter multiple targets example with ad-hoc labels
 # ------------------------------------------------------------------------------
 # Scraping metrics from multiple Blackbox Exporter probes with different modules
+# This example demonstrates using ad-hoc custom labels to add arbitrary
+# contextual information to metrics
 
 data_dir: "/var/lib/vector"
 
@@ -16,6 +18,11 @@ sources:
     module: "http_2xx"
     scrape_interval_secs: 15
     scrape_timeout_secs: 10
+    # Ad-hoc custom labels for additional context
+    labels:
+      environment: "production"
+      team: "platform"
+      service_tier: "critical"
 
   # HTTPS probes with certificate validation
   blackbox_https:
@@ -27,6 +34,11 @@ sources:
     module: "http_2xx_tls"
     scrape_interval_secs: 60
     scrape_timeout_secs: 15
+    # Different labels for different probe types
+    labels:
+      environment: "production"
+      team: "security"
+      compliance: "pci-dss"
 
   # TCP probes for service availability
   blackbox_tcp:
@@ -38,6 +50,11 @@ sources:
     module: "tcp_connect"
     scrape_interval_secs: 30
     scrape_timeout_secs: 5
+    # Labels for infrastructure monitoring
+    labels:
+      environment: "production"
+      team: "database"
+      cost_center: "engineering"
 
 # Transform - Add environment label
 transforms:
