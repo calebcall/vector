@@ -96,6 +96,81 @@ components: sources: blackbox_exporter: {
 				"""
 		}
 
+		optional_labels: {
+			title: "Optional labels"
+			body: """
+				The source supports optional labels to enrich all scraped metrics with
+				contextual information about the probe location and infrastructure. You can
+				configure predefined labels (geohash, region, location, country, name,
+				provider) and/or custom ad-hoc labels using the `labels` map.
+
+				**Predefined Labels:**
+
+				- `geohash`: Geohash of the probe location (e.g., "9qx7hh9jd")
+				- `region`: Broad geographic region (e.g., "AMER", "EMEA", "APAC")
+				- `location`: City or location name (e.g., "Oregon", "Paris")
+				- `country`: Two-digit country code (e.g., "US", "FR")
+				- `name`: Friendly name for the check (e.g., "API Health")
+				- `provider`: Infrastructure provider (e.g., "AWS", "GCP", "AZURE")
+
+				**Ad-hoc Labels:**
+
+				Use the `labels` configuration map to add any custom key-value pairs as
+				labels. This is useful for adding environment, team, cost center, or other
+				organizational metadata.
+
+				**Conflict Resolution:**
+
+				If a scraped metric already contains a label that matches an optional label
+				key, the existing label is renamed to `exported_<key>` and the configured
+				value is added as the new label, following Prometheus conventions.
+
+				**Precedence:**
+
+				If an ad-hoc label key conflicts with a predefined label key, the ad-hoc
+				label value takes precedence and the predefined label is ignored.
+
+				**Example Configuration:**
+
+				```yaml
+				sources:
+				  blackbox_http:
+				    type: "blackbox_exporter"
+				    url: "http://localhost:9115"
+				    targets: ["https://example.com"]
+				    module: "http_2xx"
+				    # Predefined optional labels
+				    geohash: "9qx7hh9jd"
+				    region: "AMER"
+				    location: "Oregon"
+				    country: "US"
+				    name: "API Monitor"
+				    provider: "AWS"
+				    # Ad-hoc custom labels
+				    labels:
+				      environment: "production"
+				      team: "platform"
+				```
+
+				**Example Output:**
+
+				```
+				probe_success{
+				  target="https://example.com",
+				  module="http_2xx",
+				  geohash="9qx7hh9jd",
+				  region="AMER",
+				  location="Oregon",
+				  country="US",
+				  name="API Monitor",
+				  provider="AWS",
+				  environment="production",
+				  team="platform"
+				} 1
+				```
+				"""
+		}
+
 		multiple_targets: {
 			title: "Multiple targets"
 			body: """
@@ -145,6 +220,66 @@ components: sources: blackbox_exporter: {
 			"exported_module": {
 				description: "The original module label from the metric, if it existed. Only present if the scraped metric already had a 'module' label."
 				examples: ["custom"]
+				required: false
+			}
+			"geohash": {
+				description: "Geohash of the probe location. Only present if configured in the source."
+				examples: ["9qx7hh9jd", "u4pruydqqvj"]
+				required: false
+			}
+			"region": {
+				description: "Broad geographic region of the probe. Only present if configured in the source."
+				examples: ["AMER", "EMEA", "APAC"]
+				required: false
+			}
+			"location": {
+				description: "City or location name of the probe. Only present if configured in the source."
+				examples: ["Oregon", "Paris", "Tokyo"]
+				required: false
+			}
+			"country": {
+				description: "Two-digit country code of the probe location. Only present if configured in the source."
+				examples: ["US", "FR", "JP"]
+				required: false
+			}
+			"name": {
+				description: "Friendly name for the check. Only present if configured in the source."
+				examples: ["API Health", "Homepage", "Database"]
+				required: false
+			}
+			"provider": {
+				description: "Infrastructure provider where the probe is running. Only present if configured in the source."
+				examples: ["AWS", "GCP", "AZURE"]
+				required: false
+			}
+			"exported_geohash": {
+				description: "The original geohash label from the metric, if it existed. Only present if the scraped metric already had a 'geohash' label and a geohash was configured."
+				examples: ["abc123"]
+				required: false
+			}
+			"exported_region": {
+				description: "The original region label from the metric, if it existed. Only present if the scraped metric already had a 'region' label and a region was configured."
+				examples: ["internal"]
+				required: false
+			}
+			"exported_location": {
+				description: "The original location label from the metric, if it existed. Only present if the scraped metric already had a 'location' label and a location was configured."
+				examples: ["internal"]
+				required: false
+			}
+			"exported_country": {
+				description: "The original country label from the metric, if it existed. Only present if the scraped metric already had a 'country' label and a country was configured."
+				examples: ["XX"]
+				required: false
+			}
+			"exported_name": {
+				description: "The original name label from the metric, if it existed. Only present if the scraped metric already had a 'name' label and a name was configured."
+				examples: ["internal"]
+				required: false
+			}
+			"exported_provider": {
+				description: "The original provider label from the metric, if it existed. Only present if the scraped metric already had a 'provider' label and a provider was configured."
+				examples: ["internal"]
 				required: false
 			}
 		}
