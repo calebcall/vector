@@ -106,10 +106,10 @@ jobs:
       - name: Create Release Archive
         run: |
           mkdir -p release
-          cp target/x86_64-unknown-linux-musl/release/vector release/
+          cp target/release/vector release/
           cd release
-          tar -czf vector-${{ steps.get_version.outputs.VERSION }}-x86_64-unknown-linux-musl.tar.gz vector
-          sha256sum vector-${{ steps.get_version.outputs.VERSION }}-x86_64-unknown-linux-musl.tar.gz > vector-${{ steps.get_version.outputs.VERSION }}-x86_64-unknown-linux-musl.tar.gz.sha256
+          tar -czf vector-${{ steps.get_version.outputs.VERSION }}.tar.gz vector
+          sha256sum vector-${{ steps.get_version.outputs.VERSION }}.tar.gz > vector-${{ steps.get_version.outputs.VERSION }}.tar.gz.sha256
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
@@ -140,8 +140,8 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            release/vector-${{ needs.build-and-test.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
-            release/vector-${{ needs.build-and-test.outputs.version }}-x86_64-unknown-linux-musl.tar.gz.sha256
+            release/vector-${{ needs.build-and-test.outputs.version }}.tar.gz
+            release/vector-${{ needs.build-and-test.outputs.version }}.tar.gz.sha256
           body: |
             ## Vector v${{ needs.build-and-test.outputs.version }}
             
@@ -151,8 +151,8 @@ jobs:
             
             ### Installation
             ```bash
-            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.build-and-test.outputs.version }}/vector-${{ needs.build-and-test.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
-            tar -xzf vector-${{ needs.build-and-test.outputs.version }}-x86_64-unknown-linux-musl.tar.gz
+            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ needs.build-and-test.outputs.version }}/vector-${{ needs.build-and-test.outputs.version }}.tar.gz
+            tar -xzf vector-${{ needs.build-and-test.outputs.version }}.tar.gz
             ./vector --version
             ```
         env:
