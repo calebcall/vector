@@ -16,6 +16,13 @@ fail-fast = false
 # timeout tests after 2 minutes
 slow-timeout = { period = "30s", terminate-after = 4 }
 
+# blackbox_exporter tests need more time due to HTTP probing
+[[profile.default.overrides]]
+filter = 'test(blackbox_exporter)'
+slow-timeout = { period = "5m", terminate-after = 4 }
+# Also increase the hard timeout for these tests
+timeout = { period = "10m" }
+
 [profile.default.junit]
 # output test results at target/nextest/default/junit.xml
 path = "junit.xml"
